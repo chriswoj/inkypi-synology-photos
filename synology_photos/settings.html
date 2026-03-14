@@ -1,0 +1,133 @@
+<div class="plugin-settings">
+    <div class="mb-3">
+        <label for="sharing_url" class="form-label">Sharing URL</label>
+        <input type="text" class="form-control" id="sharing_url" name="sharing_url"
+               placeholder="https://your-nas:5001/mo/sharing/XXXXXXX" required>
+        <div class="form-text">Paste the public sharing link from Synology Photos.</div>
+    </div>
+
+    <div class="mb-3 form-check form-switch">
+        <input type="checkbox" class="form-check-input" id="verify_ssl" name="verify_ssl" value="true">
+        <label class="form-check-label" for="verify_ssl">Verify SSL Certificate</label>
+        <div class="form-text">Leave off for self-signed certificates (most home NAS setups).</div>
+    </div>
+
+    <div class="mb-3">
+        <label for="image_size" class="form-label">Image Size</label>
+        <select class="form-select" id="image_size" name="image_size">
+            <option value="sm">Small</option>
+            <option value="m">Medium</option>
+            <option value="xl" selected>Large (XL)</option>
+            <option value="original">Original</option>
+        </select>
+        <div class="form-text">XL is recommended for e-ink displays. Original downloads the full-resolution file.</div>
+    </div>
+
+    <div class="mb-3 form-check form-switch">
+        <input type="checkbox" class="form-check-input" id="scale_to_fit" name="scale_to_fit" value="true">
+        <label class="form-check-label" for="scale_to_fit">Scale to Fit</label>
+        <div class="form-text">Pad the image to fill the display instead of cropping.</div>
+    </div>
+
+    <div class="mb-3" id="background_options" style="display: none;">
+        <label class="form-label">Background</label>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="background" id="bg_blur" value="blur" checked>
+            <label class="form-check-label" for="bg_blur">Blur</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="background" id="bg_color" value="color">
+            <label class="form-check-label" for="bg_color">Solid Color</label>
+            <input type="color" class="form-control form-control-color ms-2 d-inline-block" id="bg_color_picker"
+                   name="bg_color" value="#000000" style="display: none;">
+        </div>
+    </div>
+
+    <hr>
+    <p class="mb-2"><strong>Image Adjustments</strong></p>
+
+    <div class="mb-3">
+        <label for="saturation" class="form-label">Saturation: <span id="saturation_val">1.0</span></label>
+        <input type="range" class="form-range" id="saturation" name="saturation"
+               min="0" max="2" step="0.1" value="1.0">
+    </div>
+
+    <div class="mb-3">
+        <label for="brightness" class="form-label">Brightness: <span id="brightness_val">1.0</span></label>
+        <input type="range" class="form-range" id="brightness" name="brightness"
+               min="0" max="2" step="0.1" value="1.0">
+    </div>
+
+    <div class="mb-3">
+        <label for="contrast" class="form-label">Contrast: <span id="contrast_val">1.0</span></label>
+        <input type="range" class="form-range" id="contrast" name="contrast"
+               min="0" max="2" step="0.1" value="1.0">
+    </div>
+
+    <div class="mb-3">
+        <label for="sharpness" class="form-label">Sharpness: <span id="sharpness_val">1.0</span></label>
+        <input type="range" class="form-range" id="sharpness" name="sharpness"
+               min="0" max="2" step="0.1" value="1.0">
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const settings = typeof pluginSettings !== "undefined" ? pluginSettings : {};
+
+    // Populate saved values
+    if (settings.sharing_url) {
+        document.getElementById("sharing_url").value = settings.sharing_url;
+    }
+    if (settings.verify_ssl === "true") {
+        document.getElementById("verify_ssl").checked = true;
+    }
+    if (settings.image_size) {
+        document.getElementById("image_size").value = settings.image_size;
+    }
+    if (settings.scale_to_fit === "true") {
+        document.getElementById("scale_to_fit").checked = true;
+    }
+    if (settings.background === "color") {
+        document.getElementById("bg_color").checked = true;
+    }
+    if (settings.bg_color) {
+        document.getElementById("bg_color_picker").value = settings.bg_color;
+    }
+
+    // Slider values
+    ["saturation", "brightness", "contrast", "sharpness"].forEach(function (name) {
+        const slider = document.getElementById(name);
+        const display = document.getElementById(name + "_val");
+        if (settings[name]) {
+            slider.value = settings[name];
+        }
+        display.textContent = parseFloat(slider.value).toFixed(1);
+        slider.addEventListener("input", function () {
+            display.textContent = parseFloat(this.value).toFixed(1);
+        });
+    });
+
+    // Toggle background options visibility
+    const scaleToFit = document.getElementById("scale_to_fit");
+    const bgOptions = document.getElementById("background_options");
+
+    function toggleBgOptions() {
+        bgOptions.style.display = scaleToFit.checked ? "block" : "none";
+    }
+    toggleBgOptions();
+    scaleToFit.addEventListener("change", toggleBgOptions);
+
+    // Toggle color picker visibility
+    const bgColorRadio = document.getElementById("bg_color");
+    const bgBlurRadio = document.getElementById("bg_blur");
+    const colorPicker = document.getElementById("bg_color_picker");
+
+    function toggleColorPicker() {
+        colorPicker.style.display = bgColorRadio.checked ? "inline-block" : "none";
+    }
+    toggleColorPicker();
+    bgColorRadio.addEventListener("change", toggleColorPicker);
+    bgBlurRadio.addEventListener("change", toggleColorPicker);
+});
+</script>

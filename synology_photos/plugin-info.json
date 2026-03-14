@@ -1,0 +1,6 @@
+{
+    "display_name": "Synology Photos",
+    "id": "synology_photos",
+    "class": "SynologyPhotos",
+    "repository": "https://github.com/chriswoj/InkyPi-Synology-Photos"
+}
