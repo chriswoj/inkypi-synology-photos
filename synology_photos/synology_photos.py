@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class SynologyPhotosProvider:
-    """Stateless client for the Synology Photos public sharing API."""
+    """Client for the Synology Photos public sharing API."""
 
     def __init__(self, base_url, passphrase, verify_ssl=False):
         self.base_url = base_url.rstrip("/")
@@ -21,18 +21,24 @@ class SynologyPhotosProvider:
         self.verify_ssl = verify_ssl
         self.sharing_sid = None
 
+    def _api_url(self):
+        return f"{self.base_url}/mo/sharing/webapi/entry.cgi"
+
+    def _headers(self):
+        headers = {"User-Agent": "Mozilla/5.0", "x-syno-sharing": self.passphrase}
+        if self.sharing_sid:
+            headers["Cookie"] = f"sharing_sid={self.sharing_sid}"
+        return headers
+
     def _get_sharing_sid(self):
-        """Authenticate via the sharing login endpoint to obtain a sharing_sid cookie."""
-        url = f"{self.base_url}/photo/webapi/entry.cgi"
-        data = {
-            "api": "SYNO.Core.Sharing.Login",
-            "method": "login",
-            "version": 1,
-            "sharing_id": self.passphrase,
-        }
+        """Obtain a sharing_sid by visiting the sharing page."""
+        url = f"{self.base_url}/mo/sharing/{self.passphrase}"
 
         try:
-            resp = requests.post(url, data=data, verify=self.verify_ssl, timeout=15)
+            resp = requests.get(
+                url, headers={"User-Agent": "Mozilla/5.0"},
+                verify=self.verify_ssl, timeout=15,
+            )
             resp.raise_for_status()
         except requests.exceptions.SSLError:
             raise RuntimeError(
@@ -43,25 +49,19 @@ class SynologyPhotosProvider:
                 "Cannot connect to NAS. Check the sharing URL and network connectivity."
             )
 
-        result = resp.json()
-        if not result.get("success"):
-            raise RuntimeError(
-                "Failed to authenticate. Check that the sharing URL is correct and the share is still active."
-            )
+        # Extract sharing_sid from response cookies (may be set for a different domain)
+        for cookie in resp.cookies:
+            if cookie.name == "sharing_sid":
+                self.sharing_sid = cookie.value
+                return
 
-        self.sharing_sid = result["data"]["sharing_sid"]
-        return self.sharing_sid
-
-    def _request_headers(self):
-        """Build headers required for sharing API requests."""
-        return {
-            "Cookie": f"sharing_sid={self.sharing_sid}",
-            "x-syno-sharing": self.passphrase,
-        }
+        raise RuntimeError(
+            "Failed to authenticate. Check that the sharing URL is correct and the share is still active."
+        )
 
     def list_items(self, limit=1000):
         """List all photos in the shared album using pagination."""
-        url = f"{self.base_url}/photo/mo/sharing/webapi/entry.cgi"
+        url = self._api_url()
         all_items = []
         offset = 0
 
@@ -78,11 +78,8 @@ class SynologyPhotosProvider:
 
             try:
                 resp = requests.post(
-                    url,
-                    data=data,
-                    headers=self._request_headers(),
-                    verify=self.verify_ssl,
-                    timeout=30,
+                    url, data=data, headers=self._headers(),
+                    verify=self.verify_ssl, timeout=30,
                 )
                 resp.raise_for_status()
             except requests.exceptions.RequestException as e:
@@ -121,7 +118,7 @@ class SynologyPhotosProvider:
             "passphrase": self.passphrase,
         }
 
-        return f"{self.base_url}/photo/mo/sharing/webapi/entry.cgi", params
+        return self._api_url(), params
 
     def download_photo(self, item, size="xl"):
         """Download photo bytes. Uses thumbnail API for sized versions, download API for originals."""
@@ -132,11 +129,8 @@ class SynologyPhotosProvider:
 
         try:
             resp = requests.get(
-                url,
-                params=params,
-                headers=self._request_headers(),
-                verify=self.verify_ssl,
-                timeout=60,
+                url, params=params, headers=self._headers(),
+                verify=self.verify_ssl, timeout=60,
             )
             resp.raise_for_status()
         except requests.exceptions.RequestException as e:
@@ -149,7 +143,7 @@ class SynologyPhotosProvider:
 
     def _download_original(self, item):
         """Download the original full-resolution photo."""
-        url = f"{self.base_url}/photo/mo/sharing/webapi/entry.cgi"
+        url = self._api_url()
         data = {
             "api": "SYNO.Foto.Download",
             "method": "download",
@@ -160,11 +154,8 @@ class SynologyPhotosProvider:
 
         try:
             resp = requests.post(
-                url,
-                data=data,
-                headers=self._request_headers(),
-                verify=self.verify_ssl,
-                timeout=120,
+                url, data=data, headers=self._headers(),
+                verify=self.verify_ssl, timeout=120,
             )
             resp.raise_for_status()
         except requests.exceptions.RequestException as e:
