@@ -7,7 +7,7 @@ import requests
 from PIL import Image, ImageOps
 
 from plugins.base_plugin.base_plugin import BasePlugin
-from utils.image_utils import apply_image_enhancements, pad_image_blur
+from utils.image_utils import apply_image_enhancement, pad_image_blur
 
 logger = logging.getLogger(__name__)
 
@@ -258,6 +258,6 @@ class SynologyPhotos(BasePlugin):
             img = ImageOps.fit(img, dimensions, method=Image.Resampling.LANCZOS)
 
         # Apply image enhancements
-        img = apply_image_enhancements(img, settings)
+        img = apply_image_enhancement(img, settings)
 
         return img
