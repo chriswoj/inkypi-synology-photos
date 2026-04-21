@@ -248,7 +248,12 @@ class SynologyPhotos(BasePlugin):
         else:
             img = ImageOps.fit(img, dimensions, method=Image.Resampling.LANCZOS)
 
-        # Apply image enhancements
-        img = apply_image_enhancement(img, settings)
+        # Apply image enhancements (extract numeric values; settings from forms are strings)
+        enhancement_keys = ("brightness", "contrast", "saturation", "sharpness")
+        enhancements = {}
+        for key in enhancement_keys:
+            if key in settings:
+                enhancements[key] = float(settings[key])
+        img = apply_image_enhancement(img, enhancements)
 
         return img
