@@ -1,20 +1,23 @@
 <div class="plugin-settings">
-    <div class="mb-3">
+    <div class="form-group">
         <label for="sharing_url" class="form-label">Sharing URL</label>
-        <input type="text" class="form-control" id="sharing_url" name="sharing_url"
+        <input type="text" class="form-input" id="sharing_url" name="sharing_url"
                placeholder="https://your-nas:5001/mo/sharing/XXXXXXX" required>
         <div class="form-text">Paste the public sharing link from Synology Photos.</div>
     </div>
 
-    <div class="mb-3 form-check form-switch">
-        <input type="checkbox" class="form-check-input" id="verify_ssl" name="verify_ssl" value="true">
-        <label class="form-check-label" for="verify_ssl">Verify SSL Certificate</label>
+    <div class="form-group">
+        <label class="form-label">Verify SSL Certificate</label>
+        <div class="toggle-container">
+            <input type="checkbox" class="toggle-checkbox" id="verify_ssl" name="verify_ssl" value="true">
+            <label class="toggle-label" for="verify_ssl"></label>
+        </div>
         <div class="form-text">Leave off for self-signed certificates (most home NAS setups).</div>
     </div>
 
-    <div class="mb-3">
+    <div class="form-group">
         <label for="image_size" class="form-label">Image Size</label>
-        <select class="form-select" id="image_size" name="image_size">
+        <select class="form-input" id="image_size" name="image_size">
             <option value="sm">Small</option>
             <option value="m">Medium</option>
             <option value="xl" selected>Large (XL)</option>
@@ -23,50 +26,55 @@
         <div class="form-text">XL is recommended for e-ink displays. Original downloads the full-resolution file.</div>
     </div>
 
-    <div class="mb-3 form-check form-switch">
-        <input type="checkbox" class="form-check-input" id="scale_to_fit" name="scale_to_fit" value="true">
-        <label class="form-check-label" for="scale_to_fit">Scale to Fit</label>
+    <div class="form-group">
+        <label class="form-label">Scale to Fit</label>
+        <div class="toggle-container">
+            <input type="checkbox" class="toggle-checkbox" id="scale_to_fit" name="scale_to_fit" value="true">
+            <label class="toggle-label" for="scale_to_fit"></label>
+        </div>
         <div class="form-text">Pad the image to fill the display instead of cropping.</div>
     </div>
 
-    <div class="mb-3" id="background_options" style="display: none;">
-        <label class="form-label">Background</label>
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="background" id="bg_blur" value="blur" checked>
-            <label class="form-check-label" for="bg_blur">Blur</label>
+    <div id="background_options" style="display: none;">
+        <div class="form-group">
+            <label class="form-label">Background</label>
+            <select class="form-input" id="background" name="background">
+                <option value="blur" selected>Blur</option>
+                <option value="color">Solid Color</option>
+            </select>
         </div>
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="background" id="bg_color" value="color">
-            <label class="form-check-label" for="bg_color">Solid Color</label>
-            <input type="color" class="form-control form-control-color ms-2 d-inline-block" id="bg_color_picker"
-                   name="bg_color" value="#000000" style="display: none;">
+
+        <div class="form-group" id="color_picker_group" style="display: none;">
+            <label for="bg_color_picker" class="form-label">Background Color</label>
+            <input type="color" class="color-picker" id="bg_color_picker"
+                   name="bg_color" value="#000000">
         </div>
     </div>
 
     <hr>
-    <p class="mb-2"><strong>Image Adjustments</strong></p>
+    <label class="form-label"><strong>Image Adjustments</strong></label>
 
-    <div class="mb-3">
+    <div class="form-group">
         <label for="saturation" class="form-label">Saturation: <span id="saturation_val">1.0</span></label>
-        <input type="range" class="form-range" id="saturation" name="saturation"
+        <input type="range" class="form-input" id="saturation" name="saturation"
                min="0" max="2" step="0.1" value="1.0">
     </div>
 
-    <div class="mb-3">
+    <div class="form-group">
         <label for="brightness" class="form-label">Brightness: <span id="brightness_val">1.0</span></label>
-        <input type="range" class="form-range" id="brightness" name="brightness"
+        <input type="range" class="form-input" id="brightness" name="brightness"
                min="0" max="2" step="0.1" value="1.0">
     </div>
 
-    <div class="mb-3">
+    <div class="form-group">
         <label for="contrast" class="form-label">Contrast: <span id="contrast_val">1.0</span></label>
-        <input type="range" class="form-range" id="contrast" name="contrast"
+        <input type="range" class="form-input" id="contrast" name="contrast"
                min="0" max="2" step="0.1" value="1.0">
     </div>
 
-    <div class="mb-3">
+    <div class="form-group">
         <label for="sharpness" class="form-label">Sharpness: <span id="sharpness_val">1.0</span></label>
-        <input type="range" class="form-range" id="sharpness" name="sharpness"
+        <input type="range" class="form-input" id="sharpness" name="sharpness"
                min="0" max="2" step="0.1" value="1.0">
     </div>
 </div>
@@ -88,8 +96,8 @@ document.addEventListener("DOMContentLoaded", function () {
     if (settings.scale_to_fit === "true") {
         document.getElementById("scale_to_fit").checked = true;
     }
-    if (settings.background === "color") {
-        document.getElementById("bg_color").checked = true;
+    if (settings.background) {
+        document.getElementById("background").value = settings.background;
     }
     if (settings.bg_color) {
         document.getElementById("bg_color_picker").value = settings.bg_color;
@@ -119,15 +127,13 @@ document.addEventListener("DOMContentLoaded", function () {
     scaleToFit.addEventListener("change", toggleBgOptions);
 
     // Toggle color picker visibility
-    const bgColorRadio = document.getElementById("bg_color");
-    const bgBlurRadio = document.getElementById("bg_blur");
-    const colorPicker = document.getElementById("bg_color_picker");
+    const bgSelect = document.getElementById("background");
+    const colorGroup = document.getElementById("color_picker_group");
 
     function toggleColorPicker() {
-        colorPicker.style.display = bgColorRadio.checked ? "inline-block" : "none";
+        colorGroup.style.display = bgSelect.value === "color" ? "block" : "none";
     }
     toggleColorPicker();
-    bgColorRadio.addEventListener("change", toggleColorPicker);
-    bgBlurRadio.addEventListener("change", toggleColorPicker);
+    bgSelect.addEventListener("change", toggleColorPicker);
 });
 </script>
